@@ -13,6 +13,11 @@
 #include <libxml2/libxml/xmlmemory.h>
 #include <libxml2/libxml/parser.h>
 
+/*
+	1,6,7,10,27,8,9,4,39,12
+*/
+
+
 
 /*
 	新增用户id及指纹模版，并上传到服务器
@@ -423,6 +428,7 @@ int update_logo(char * key,char * serial)
 
 
 /*
+	api6:
 	Key
  		AJ5P8EG3M2Z3
 	Serial
@@ -490,7 +496,7 @@ int Diagnostic_Alert(char *key ,char * serial,char * diagnostc_msg)
 
 
 /*
-	api2:先服务器请求更新固件，服务器返回固件下载的URL
+	api7:先服务器请求更新固件，服务器返回固件下载的URL
 	key:
 	serial:
 	version:
@@ -559,15 +565,292 @@ int Update_Firmware2(char *key,char * setial,char * version)
 
 /*
 	api39:用于按地区获取支持电话号码
-	
-	
+	key:
+	serial
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method=get_support_number&key=AJ5P8EG3M2Z3&serial=BN4000-20082
+123
+
+	recive:	<?xml version="1.0" encoding="UTF-8" ?>
+			<result>
+				<Header>
+					<status>Successful</status>
+					<status_message></status_message>
+					<header_title></header_title>
+				</Header>
+				<Detail>
+					<support_number> (800)518-8925</support_number>
+				</Detail>
+				<Table>
+				</Table>
+			</result>
+			
+
+
+			<?xml version="1.0" encoding="UTF-8" ?>
+			<result>
+					<Header>
+						<status>Failure</status>
+						<status_message>Sorry, Cannot Get Support Number!</status_message>
+						<header_title></header_title>
+					</Header>
+					<Detail>
+						<error_code name="Error Code" value="U-1" />
+					</Detail>
+					<Table>
+					</Table>
+			</result>
+
+
 */
 
-int Get_Support_Number()
+int Get_Support_Numbe(char *key,char * serial)
 {
+	/*发送的报文*/
+	 char send[1024]={0};
+	 char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	 sprintf(send,"%smethod=get_support_number&key=%s&serial=%s",address,key,serial);
+
+
+	/*返回解析*/
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+       xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	xmlChar * status, * message, *headtitle,* support_num,* err_name,* err_value;
+
+	tmpnode=root_node->children;
+	while(tmpnode)
+		{
+			if(xmlStrcmp(tmpnode->name, "Header"))
+				{
+					tmppnode=tmpnode->children;
+					while(tmppnode)
+						{
+							if(xmlStrcmp(tmppnode->name, "status"))
+								status=xmlNodeGetContent(tmppnode);
+							if(xmlStrcmp(tmppnode->name, "status_message"))
+								message=xmlNodeGetContent(tmppnode);
+							if(xmlStrcmp(tmppnode->name, "header_title"))
+								headtitle=xmlNodeGetContent(tmppnode);
+							tmppnode=tmppnode->next;
+						}
+				}
+
+			if(xmlStrcmp(tmpnode->name, "Detail"))
+				{
+					tmppnode=tmpnode->children;
+					while(tmppnode)
+						{
+							if(xmlStrcmp(status, "Successful"))
+								support_num=xmlNodeGetContent(tmppnode);
+							else
+								{
+									err_name=xmlGetNoNsProp(tmppnode, "name");
+									err_value=xmlGetNoNsProp(tmppnode, "value");
+								}
+							tmppnode=tmppnode->next;
+						}
+				}
+
+			tmpnode=tmpnode->next;
+		}
+	
+		/*处理*/
+
+		free(status);
+		free(message);
+		free(headtitle);
+		free(support_num);
+		free(err_name);
+		free(err_value);
+		xmlFreeDoc(doc);
 
 }
 
+
+
+/*
+	api12:
+
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method=get_web_services_domains&key=AJ5P8EG3M2Z3&serial=BN4000
+-RQKVZKNZ
+       recive:
+       <?xml version="1.0" encoding="UTF-8" ?>
+	<result>
+		<Header>
+			<status>Successful</status>
+			<status_message></status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+			<domain>
+				<name value="ws.trackmytime.com" />
+				<clock_filename value="clock.cfc" />
+				<firmware_filename value="firmware.cfc" />
+			</domain>
+			<domain>
+				<name value="ws2.trackmytime.com" />
+				<clock_filename value="uattend-1.0.asp" />
+				<firmware_filename value="newfirmware.asp" />
+			</domain>
+			<domain>
+				<name value="ws3.trackmytime.com" />
+				<clock_filename value="uattend-1.0.cfc" />
+				<firmware_filename value="firmware.cfc" />
+			</domain>
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+
+*/
+
+
+int Get_web_services_domains(char *key,char * serial)
+{
+	/*发送*/
+	 char send[1024]={0};
+	 char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	 sprintf(send,"%smethod=get_support_number&key=%s&serial=%s",address,key,serial);
+
+	/*返回解析*/
+	
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+       xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+	
+	xmlNodePtr domainlist[128]={NULL};
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL;
+	int  domainnum=0;
+
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+	while(tmpnode)
+		{
+			if(xmlStrcmp(tmpnode->name, "Header"))
+				{
+				  	tmppnode=tmpnode->children;
+					while(tmppnode)
+						{
+							if(xmlStrcmp(tmppnode->name, "status"))
+								status=xmlNodeGetContent(tmppnode));
+							if(xmlStrcmp(tmppnode->name, "status_message")
+								message`=xmlNodeGetContent(tmppnode));
+							if(xmlStrcmp(tmppnode->name, "header_title")
+								headtitle=xmlNodeGetContent(tmppnode));
+
+							tmppnode=tmppnode->next;
+						}
+					if(!xmlStrcmp(status, "Successful"))
+						break;
+				}
+
+			if(xmlStrcmp(tmpnode->name, "Detail"))
+			{
+				tmppnode=tmpnode->children->children;
+				while(tmppnode)
+					{
+						domainlist[domainnum]=tmpnode;
+						domainnum++;
+						tmppnode=tmppnode->next;
+					}
+			}
+
+			tmpnode=tmpnode->next;
+		}
+
+	/*处理*/
+	if(domainnum>0)
+		{
+		
+		}
+
+	free(status);
+	free(message);
+	free(headtitle);
+	xmlFreeDoc(doc);
+	
+}
+
+
+
+/*
+	api5:
+	key:
+	serial:
+	pin:
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method=pin_punch&key=AJ5P8EG3M2Z3&serial=BN4000-20082123&pin=5
+555
+
+	recive:
+	<?xml version="1.0" encoding="UTF-8" ?>
+	<result>
+		<Header>
+			<status>Successful</status>
+			<status_message></status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+			<current_punch name="You Punched IN" value="at 4:04 AM" />
+			<employee name="Employee Name" value="Lebron James" />
+			<department name="Department Name" value="Dep1" />
+			<last_punch name="Your Last Punch" value="November 23 @ 4:15PM" />
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+
+
+	<?xml version="1.0" encoding="UTF-8" ?>
+	<result>
+	<Header>
+	<status>Failure</status>
+	<status_message>Sorry, User Not Found!</status_message>
+	<header_title></header_title>
+	</Header>
+	<Detail>
+	<error_code name="Error Code" value="U-1" />
+	</Detail>
+	<Table>
+	</Table>
+	</result>
+
+*/
+
+int Pin_punch(char * key,char * serial,char * pin)
+{
+	/*发送*/
+	 char send[1024]={0};
+	 char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	 sprintf(send,"%smethod=get_support_number&key=%s&serial=%s&pin=%s",address,key,serial,pin);
+
+
+	 /*返回解析*/
+	
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+       xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+	
+	
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL;
+
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+}
 
 
 #define KEY "key4646"
