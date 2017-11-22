@@ -316,7 +316,7 @@ int update_time(char * key,char * serial)
 {
 
 	/*发送报文? */
-
+	
 	/*接收报文*/
 
 	char * back;	//返回报文
