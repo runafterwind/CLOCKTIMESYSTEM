@@ -14,7 +14,7 @@
 #include <libxml2/libxml/parser.h>
 
 /*
-	1,6,7,10,27,8,9,4,39,12
+	1,6,7,10,27,8,9,4,39,12,48,49,50,11,28,52,32,54,30
 */
 
 
@@ -851,6 +851,766 @@ int Pin_punch(char * key,char * serial,char * pin)
 	tmpnode=root_node->children;
 
 }
+
+
+
+/*
+	api48:
+
+	send:
+	http://ws.trackmytime.com/uattend-1.0.cfc?method=fetch_departments_bio&key=AJ5P8EG3M2Z3&serial=BN4000-RQ KVZKNZ&fid=000001
+
+	recive:
+	<xml version="1.0" encoding="UTF-8" ?>
+	<result>
+		<Header>
+			<status>Successful</status>
+			<status_message></status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+		</Detail>
+		<Table>
+			<table_header>Department List</table_header>
+			<column_header>Department Code</column_header>
+			<column_header>Department Name</column_header>
+			<department>
+				<id value="1111" />
+				<code value="abctest" />
+				<name value="abc" />
+			</department>
+			<department>
+				<id value="1221" />
+				<code value="abctest2" />
+				<name value="xyz" />
+			</department>
+		</Table>
+	</result> 
+
+	Sample Output (Failure)
+<?xml version="1.0" encoding="UTF-8" ?>
+<result>
+	<Header>
+		<status>Failure</status>
+		<status_message>Sorry, No Departments Found!</status_message>
+		<header_title></header_title>
+	</Header>
+	<Detail>
+		<error_code name="Error Code" value="D-1" />
+	</Detail>
+	<Table>
+	</Table>
+</result>
+
+
+*/
+
+int etch_departments_bio(char * key,char * serial,char * fid)
+{
+	/*发送*/
+	 char send[1024]={0};
+	 char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	 sprintf(send,"%smethod=fetch_departments&key=%s&serial=%s&fid=%s",address,key,serial,fid);
+
+	
+	 /*返回解析*/
+	
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+       xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+	
+	
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL;
+	xmlChar *err_name=NULL,*err_value=NULL;
+	xmlNodePtr department[128];
+	int departnum=0;
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+	
+	while(tmpnode)
+	{
+			if(xmlStrcmp(tmpnode->name, "Header"))
+				{
+				  	tmppnode=tmpnode->children;
+					while(tmppnode)
+						{
+							if(xmlStrcmp(tmppnode->name, "status"))
+								status=xmlNodeGetContent(tmppnode));
+							if(xmlStrcmp(tmppnode->name, "status_message")
+								message`=xmlNodeGetContent(tmppnode));
+							if(xmlStrcmp(tmppnode->name, "header_title")
+								headtitle=xmlNodeGetContent(tmppnode));
+
+							tmppnode=tmppnode->next;
+						}
+				}
+
+			if(xmlStrcmp(tmpnode->name, "Detail"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+					{
+						if(xmlStrcmp(tmppnode->name, "error_code"))
+							{
+								err_name=xmlGetNoNsProp(tmppnode, "name");
+								err_value=xmlGetNoNsProp(tmppnode, "value");
+								break;
+							}
+						tmppnode=tmppnode->next;
+					}
+			}
+
+			if(xmlStrcmp(tmpnode->name, "Table"))
+				{
+					if(!xmlStrcmp(status, "Successful"))
+						break;
+					tmppnode=tmpnode->children;
+					while(tmppnode)
+					{
+						if(xmlStrcmp(tmppnode->name, "department"))
+							department[departnum++]=tmppnode;
+						tmppnode=tmppnode->next;
+					}
+				}
+			tmpnode=tmpnode->next;
+		}
+	/*处理*/
+
+
+
+
+	free(status);
+	free(message);
+	free(headtitle);
+	xmlFreeDoc(doc);
+
+}
+
+
+/*
+		api49:
+
+		send:
+		http://ws.trackmytime.com/uattend-1.0.cfc?method=fetch_departments_rfid&key=AJ5P8EG3M2Z3&serial=BN4000-RQ KVZKNZ&RFID=1234567890
+		
+		return:
+		<xml version="1.0" encoding="UTF-8" ?>
+	<result>
+		<Header>
+			<status>Successful</status>
+			<status_message></status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+		</Detail>
+		<Table>
+			<table_header>Department List</table_header>
+			<column_header>Department Code</column_header>
+			<column_header>Department Name</column_header>
+			<department>
+				<id value="1111" />
+				<code value="abctest" />
+				<name value="abc" />
+			</department>
+			<department>
+				<id value="1221" />
+				<code value="abctest2" />
+				<name value="xyz" />
+			</department>
+		</Table>
+	</result> 
+
+	<?xml version="1.0" encoding="UTF-8" ?>
+	<result>
+		<Header>
+			<status>Failure</status>
+			<status_message>Sorry, No Departments Found!</status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+			<error_code name="Error Code" value="D-1" />
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+
+		
+*/
+
+int fetch_departments_RFID(char *key,char * serial,char *RFID)
+{
+	/*发送*/
+	 char send[1024]={0};
+	 char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	 sprintf(send,"%smethod=fetch_departments_RFID&key=%s&serial=%s&RFID=%s",address,key,serial,RFID);
+
+	  /*返回解析*/
+	
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+       xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+	
+	
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL;
+	xmlChar *err_name=NULL,*err_value=NULL;
+	xmlNodePtr department[128];
+	int departnum=0;
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+	
+	while(tmpnode)
+	{
+			if(xmlStrcmp(tmpnode->name, "Header"))
+				{
+				  	tmppnode=tmpnode->children;
+					while(tmppnode)
+						{
+							if(xmlStrcmp(tmppnode->name, "status"))
+								status=xmlNodeGetContent(tmppnode));
+							if(xmlStrcmp(tmppnode->name, "status_message")
+								message`=xmlNodeGetContent(tmppnode));
+							if(xmlStrcmp(tmppnode->name, "header_title")
+								headtitle=xmlNodeGetContent(tmppnode));
+
+							tmppnode=tmppnode->next;
+						}
+				}
+
+			if(xmlStrcmp(tmpnode->name, "Detail"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+					{
+						if(xmlStrcmp(tmppnode->name, "error_code"))
+							{
+								err_name=xmlGetNoNsProp(tmppnode, "name");
+								err_value=xmlGetNoNsProp(tmppnode, "value");
+								break;
+							}
+						tmppnode=tmppnode->next;
+					}
+			}
+
+			if(xmlStrcmp(tmpnode->name, "Table"))
+				{
+					if(!xmlStrcmp(status, "Successful"))
+						break;
+					tmppnode=tmpnode->children;
+					while(tmppnode)
+					{
+						if(xmlStrcmp(tmppnode->name, "department"))
+							department[departnum++]=tmppnode;
+						tmppnode=tmppnode->next;
+					}
+				}
+			tmpnode=tmpnode->next;
+		}
+	
+	free(status);
+	free(message);
+	free(headtitle);
+	xmlFreeDoc(doc);
+}
+
+
+
+/*
+		api50:
+
+		send:
+		http://ws.trackmytime.com/uattend-1.0.cfc?method=rfid_punch&key=AJ5P8EG3M2Z3&seri al=BN4000-20082123&rfid=1234567890
+
+		recive:
+		<?xml version="1.0" encoding="UTF-8" ?>
+		<result>
+			<Header>
+				<status>Successful</status>
+				<status_message></status_message>
+				<header_title></header_title>
+			</Header>
+			<Detail>
+				<current_punch name="You Punched IN" value="at 4:04 AM" />
+				<employee name="Employee Name" value="Lebron James" />
+				<department name="Department Name" value="Dep1" />
+				<last_punch name="Your Last Punch" value="November 23 @ 4:15PM" />
+			</Detail>
+			<Table>
+			</Table>
+		</result>
+
+		<?xml version="1.0" encoding="UTF-8" ?>
+		<result>
+		<Header>
+		<status>Failure</status>
+		<status_message>Sorry, User Not Found!</status_message>
+		<header_title></header_title>
+		</Header>
+		<Detail>
+		<error_code name="Error Code" value="U-1" />
+		</Detail>
+		<Table>
+		</Table>
+		</result>
+
+
+*/
+
+int RFID_punc(char *key,char * serial,char * rfid,char *Dept)	//类似api5
+{
+
+	 char send[1024]={0};
+	 char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	 sprintf(send,"%smethod=RFID_punc&key=%s&serial=%s&rfid=%s",address,key,serial,rfid);
+
+
+
+	  /*返回解析*/
+	
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+       xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+	
+	
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL;
+	xmlChar *err_name=NULL,*err_value=NULL;
+	
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+	while(tmpnode)
+	{
+
+	}
+}
+
+
+/*
+	api11:
+
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method=bio_punch2&key=AJ5P8EG3M2Z3&serial=BN4000-71661532&fid=
+000001
+
+
+	recive:
+	<?xml version="1.0" encoding="UTF-8" ?>
+	<result>
+		<Header>
+			<status>Successful</status>
+			<status_message></status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+		 
+			<current_punch name="You Punched IN" value="at 4:04 AM" />
+			<employee name="Employee Name" value="Lebron James" />
+			<department name="Department Name" value="Dep1" />
+			<last_punch name="Your Last Punch" value="November 23 @ 4:15PM" />
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+
+*/
+
+int Bio_punch2(char *key,char * serial,char * rfid,char *Dept)	//类似api5
+{
+	 char send[1024]={0};
+	 char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	 sprintf(send,"%smethod=Bio_punch2&key=%s&serial=%s&rfid=%s",address,key,serial,rfid);
+
+	   /*返回解析*/
+	
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+       xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+	
+	
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL;
+	xmlChar *err_name=NULL,*err_value=NULL;
+	
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+	while(tmpnode)
+	{
+
+	}
+	
+}
+
+
+/*
+	api:28
+
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method=validate_break_pin_punch&key=AJ5P8EG3M2Z3&serial=BN4000-
+20082123&pin=5555
+
+	recive:
+	<?xml version="1.0" encoding="UTF-8" ?>
+	<result>
+	<Header>
+		<status>Successful</status>
+		<status_message></status_message>
+		<header_title></header_title>
+		<punch_type>IN</punch_type>
+	</Header>
+	<Detail>
+	</Detail>
+	<Table>
+	</Table>
+	</result>
+
+
+	<?xml version="1.0" encoding="UTF-8" ?>
+	<result>
+	<Header>
+		<status>Failure</status>
+		<status_message>Sorry, User Not Found!</status_message>
+		<header_title></header_title>
+		<punch_type></punch_type>
+	</Header>
+	<Detail>
+	<error_code name="Error Code" value="U-1" />
+	</Detail>
+	<Table>
+	</Table>
+	</result>
+
+
+*/
+
+int Validate_Break_pin_punch(char *key,char *serial,char* pin)
+{
+
+ 	char send[1024]={0};
+	 char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	 sprintf(send,"%smethod=Validate_Break_pin_punch&key=%s&serial=%s&pin=%s",address,key,serial,pin);
+
+	   /*返回解析*/
+	
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+       xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+	
+	
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL,*puch_type=NULL;
+	xmlChar *err_name=NULL,*err_value=NULL;
+	
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+	while(tmpnode)
+	{
+		if(xmlStrcmp(tmpnode->name, "Header"))
+				{
+				  	tmppnode=tmpnode->children;
+					while(tmppnode)
+						{
+							if(xmlStrcmp(tmppnode->name, "status"))
+								status=xmlNodeGetContent(tmppnode));
+							if(xmlStrcmp(tmppnode->name, "status_message")
+								message`=xmlNodeGetContent(tmppnode));
+							if(xmlStrcmp(tmppnode->name, "header_title")
+								headtitle=xmlNodeGetContent(tmppnode));
+							if(xmlStrcmp(tmppnode->name, "punch_type")
+								puch_type=xmlNodeGetContent(tmppnode));
+
+							tmppnode=tmppnode->next;
+						}
+				}
+
+			if(xmlStrcmp(tmpnode->name, "Detail"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+					{
+						if(xmlStrcmp(tmppnode->name, "error_code"))
+							{
+								err_name=xmlGetNoNsProp(tmppnode, "name");
+								err_value=xmlGetNoNsProp(tmppnode, "value");
+								break;
+							}
+						tmppnode=tmppnode->next;
+					}
+			}
+
+			tmpnode=tmpnode->next;
+	}
+
+	/*处理*/
+
+
+	 free(status);
+	free(message);
+	free(headtitle);
+	free(puch_type);
+	xmlFreeDoc(doc);
+}
+
+
+
+/*
+	api52:
+	
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method=validate_break_rfid_punch&key=AJ5P8EG3M
+2Z3&serial=BN4000-20082123&rfid=1234567890
+
+	recive:
+	<?xml version="1.0" encoding="UTF-8" ?>
+	<result>
+	<Header>
+		<status>Successful</status>
+		<status_message></status_message>
+		 
+		<header_title></header_title>
+		<punch_type>IN</punch_type>
+	</Header>
+	<Detail>
+	</Detail>
+	<Table>
+	</Table>
+	</result>
+
+Sample Output (Failure)
+<?xml version="1.0" encoding="UTF-8" ?>
+<result>
+<Header>
+<status>Failure</status>
+<status_message>Sorry, User Not Found!</status_message>
+<header_title></header_title>
+<punch_type></punch_type>
+</Header>
+<Detail>
+<error_code name="Error Code" value="U-1" />
+</Detail>
+<Table>
+</Table>
+</result>
+
+*/
+
+int Validate_Break_RFID_Punch(char * key,char * serial,char *rfid)
+{
+	char send[1024]={0};
+	 char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	 sprintf(send,"%smethod=Validate_Break_RFID_Punch&key=%s&serial=%s&rfid=%s",address,key,serial,rfid);
+
+
+	    /*返回解析*/
+	
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+       xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+	
+	
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL,*puch_type=NULL;
+	xmlChar *err_name=NULL,*err_value=NULL;
+	
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+	while(tmpnode)
+	{
+	if(xmlStrcmp(tmpnode->name, "Header"))
+			{
+			  	tmppnode=tmpnode->children;
+				while(tmppnode)
+					{
+						if(xmlStrcmp(tmppnode->name, "status"))
+							status=xmlNodeGetContent(tmppnode));
+						if(xmlStrcmp(tmppnode->name, "status_message")
+							message`=xmlNodeGetContent(tmppnode));
+						if(xmlStrcmp(tmppnode->name, "header_title")
+							headtitle=xmlNodeGetContent(tmppnode));
+						if(xmlStrcmp(tmppnode->name, "punch_type")
+							puch_type=xmlNodeGetContent(tmppnode));
+
+						tmppnode=tmppnode->next;
+					}
+			}
+
+		if(xmlStrcmp(tmpnode->name, "Detail"))
+		{
+			tmppnode=tmpnode->children;
+			while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name, "error_code"))
+						{
+							err_name=xmlGetNoNsProp(tmppnode, "name");
+							err_value=xmlGetNoNsProp(tmppnode, "value");
+							break;
+						}
+					tmppnode=tmppnode->next;
+				}
+		}
+
+		tmpnode=tmpnode->next;
+	}
+
+	 free(status);
+	free(message);
+	free(headtitle);
+	free(puch_type);
+	xmlFreeDoc(doc);
+}
+
+
+
+
+
+
+
+
+
+/*
+	api32:
+*/
+
+int Validate_Break_Bio_Punch(char * key,char * serial,char * fid)
+{
+	char send[1024]={0};
+	 char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	 sprintf(send,"%smethod=Validate_Break_Bio_Punch&key=%s&serial=%s&fid=%s",address,key,serial,fid);
+
+
+	    /*返回解析*/
+	
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+       xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+	
+	
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL,*puch_type=NULL;
+	xmlChar *err_name=NULL,*err_value=NULL;
+	
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+	while(tmpnode)
+	{
+	if(xmlStrcmp(tmpnode->name, "Header"))
+			{
+			  	tmppnode=tmpnode->children;
+				while(tmppnode)
+					{
+						if(xmlStrcmp(tmppnode->name, "status"))
+							status=xmlNodeGetContent(tmppnode));
+						if(xmlStrcmp(tmppnode->name, "status_message")
+							message`=xmlNodeGetContent(tmppnode));
+						if(xmlStrcmp(tmppnode->name, "header_title")
+							headtitle=xmlNodeGetContent(tmppnode));
+						if(xmlStrcmp(tmppnode->name, "punch_type")
+							puch_type=xmlNodeGetContent(tmppnode));
+
+						tmppnode=tmppnode->next;
+					}
+			}
+
+		if(xmlStrcmp(tmpnode->name, "Detail"))
+		{
+			tmppnode=tmpnode->children;
+			while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name, "error_code"))
+						{
+							err_name=xmlGetNoNsProp(tmppnode, "name");
+							err_value=xmlGetNoNsProp(tmppnode, "value");
+							break;
+						}
+					tmppnode=tmppnode->next;
+				}
+		}
+
+		tmpnode=tmpnode->next;
+	}
+
+	 free(status);
+	free(message);
+	free(headtitle);
+	free(puch_type);
+	xmlFreeDoc(doc);
+}
+
+
+/
+
+
+/*
+	api54:
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method=break_rfid_punch&key=AJ5P8EG3M2Z3&serial=BN4000-20082123
+&rfid=1234567890
+
+
+	recive:
+	<?xml version="1.0" encoding="UTF-8" ?>
+	<result>
+	<Header>
+	<status>Successful</status>
+	<status_message></status_message>
+	<header_title></header_title>
+	</Header>
+	<Detail>
+	<current_punch name="You Punched IN" value="at 4:04 AM" />
+	<employee name="Employee Name" value="Lebron James" />
+	<department name="Department Name" value="Dep1" />
+	<last_punch name="Your Last Break Punch" value="November 23 @ 4:15PM" />
+	</Detail>
+	<Table>
+	</Table>
+	</result>
+
+*/
+
+int Break_RFID_Punch(char *key,char *serial,char *RFID,char *Dept)	//leisi api5
+{
+	char send[1024]={0};
+	 char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	 sprintf(send,"%smethod=Break_RFID_Punch&key=%s&serial=%s&RFID=%s",address,key,serial,RFID);
+
+	
+
+}
+
+
+
+
+
+
 
 
 #define KEY "key4646"
