@@ -14,7 +14,9 @@
 #include <libxml2/libxml/parser.h>
 
 /*
-	1,6,7,10,27,8,9,4,39,12,48,49,50,11,28,52,32,54,30,34
+	1,5,6,7,10,27,8,9,4,39,12,48,49,50,11,28,52,32,54,30,34
+
+	29,33,53,55,31,35,45,46,47,64,65,66	
 */
 
 
@@ -2191,6 +2193,1583 @@ int Break_Bio_Punch(char *key,char *serial,char *fid)
 	free(status);free(message);free(headtitle);
 	free(curr_punch_name);free(curr_punch_value);
 	free(employee_name);free(employee_value);
+	free(last_punch_name);free(last_punch_value);
+	free(err_name);free(err_value);
+	xmlFreeDoc(doc);
+	
+}
+
+
+/*
+	api29:
+	
+	send:
+http://ws.trackmytime.com/uattend-1.0.cfc?method=validate_lunch_pin_punch&key=AJ5P8EG3M2Z3&serial=BN4000-2
+0082123&pin=5555
+
+	recive:
+	Sample Output (Success)
+	<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+			<status>Successful</status>
+			<status_message></status_message>
+			<header_title></header_title>
+			<punch_type>OUT</punch_type>
+		</Header>
+		<Detail>
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+Sample Output (Failure)
+	<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+			<status>Failure</status>
+			<status_message>Sorry, User Not Found!</status_message>
+			<header_title></header_title>
+			<punch_type></punch_type>
+		</Header>
+		<Detail>
+			<error_code name=”Error Code” value=”U-1” />
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+
+
+*/
+int Validate_Lunch_Pin_Punch(char *key,char *serial,char *pin)
+{
+	/*发送*/
+	char send[1024]={0};
+	char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	sprintf(send,"%smethod=Validate_Lunch_Pin_Punch&key=%s&serial=%s&PIN=%s",address,key,serial,pin);	
+
+	/*返回解析*/
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+		
+		
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL,*punch_type=NULL;
+	xmlChar *err_name=NULL,*err_value;
+
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+	
+	while(tmpnode)
+	{
+		if(xmlStrcmp(tmpnode->name,"Header"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"status"))
+						status=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"status_message"))
+						message=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"header_title"))
+						headtitle=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"punch_type"))
+						punch_type=xmlNodeGetContent(tmppnode);
+					tmppnode=tmppnode->next;
+				}
+			}
+
+		if(xmlStrcmp(tmpnode->name,"Detail"))
+		{
+			if(xmlStrcmp(status,"Failure"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"error_code"))
+					{
+						err_name=xmlGetNoNsProp(tmppnode,"name");
+						err_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+				
+		}
+		
+		tmpnode=tmpnode->next;
+	}	
+
+	/*处理*/
+
+	free(status);free(message);free(headtitle);free(punch_type);
+	free(err_name);free(err_value);
+	xmlFreeDoc(doc);
+}
+
+
+
+
+/*
+	api33:
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method=validate_lunch_bio_punch &key=AJ5P8EG3M2Z3&serial=BN4000-2
+0082123&fid=555555
+	recive:
+	<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+			<status>Successful</status>
+			<status_message></status_message>
+			<header_title></header_title>
+			<punch_type>IN</punch_type>
+		</Header>
+		<Detail>
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+Sample Output (Failure)
+	<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+			<status>Failure</status>
+			<status_message>Sorry, User Not Found!</status_message>
+			<header_title></header_title>
+			<punch_type></punch_type>
+		</Header>
+	<Detail>
+		<error_code name=”Error Code” value=”U-1” />
+	</Detail>
+	<Table>
+	</Table>
+	</result>
+*/
+int Validate_Lunch_Bio_Punch(char *key,char *serial,char *fid)
+{
+	
+	/*发送*/
+	char send[1024]={0};
+	char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	sprintf(send,"%smethod=Validate_Lunch_Bio_Punch&key=%s&serial=%s&fid=%s",address,key,serial,fid);	
+
+
+	/*返回解析*/
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+		
+		
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL,* punch_type;
+	xmlChar *err_name=NULL,*err_value;
+
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+	
+	while(tmpnode)
+	{
+		if(xmlStrcmp(tmpnode->name,"Header"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"status"))
+						status=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"status_message"))
+						message=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"header_title"))
+						headtitle=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"punch_type"))
+						punch_type=xmlNodeGetContent(tmppnode);
+					tmppnode=tmppnode->next;
+				}
+			}
+
+		if(xmlStrcmp(tmpnode->name,"Detail"))
+		{
+			if(xmlStrcmp(status,"Failure"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"error_code"))
+					{
+						err_name=xmlGetNoNsProp(tmppnode,"name");
+						err_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+				
+		}
+		
+		tmpnode=tmpnode->next;
+	}
+
+
+	/*处理*/
+
+
+	free(status);free(message);free(headtitle);free(punch_type);
+	free(err_name);free(err_value);
+	xmlFreeDoc(doc);
+	
+}
+
+
+/*
+	api53:
+	send:
+	http://ws.trackmytime.com/uattend-1.0.cfc?method=validate_lunch_rfid_punch&key=AJ5P8EG3M2Z3&serial=BN4000-2
+	0082123&rfid=1234567890
+	
+	recive:
+	<result>
+		<Header>
+			<status>Successful</status>
+			<status_message></status_message>
+			<header_title></header_title>
+			<punch_type>OUT</punch_type>
+		</Header>
+		<Detail>
+
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+Sample Output (Failure)
+	<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+			<status>Failure</status>
+			<status_message>Sorry, User Not Found!</status_message>
+			<header_title></header_title>
+			<punch_type></punch_type>
+		</Header>
+		<Detail>
+			<error_code name=”Error Code” value=”U-1” />
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+*/
+
+int Validate_Lunch_RFID_Punch(char *key,char *serial,char *RFID)
+{
+
+	/*发送*/
+	char send[1024]={0};
+	char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	sprintf(send,"%smethod=Validate_Lunch_RFID_Punch&key=%s&serial=%s&rfid=%s",address,key,serial,RFID);	
+
+
+	/*返回解析*/
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+		
+		
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL,* punch_type;
+	xmlChar *err_name=NULL,*err_value;
+
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+	while(tmpnode)
+	{
+		if(xmlStrcmp(tmpnode->name,"Header"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"status"))
+						status=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"status_message"))
+						message=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"header_title"))
+						headtitle=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"punch_type"))
+						punch_type=xmlNodeGetContent(tmppnode);
+					tmppnode=tmppnode->next;
+				}
+			}
+
+		if(xmlStrcmp(tmpnode->name,"Detail"))
+		{
+			if(xmlStrcmp(status,"Failure"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"error_code"))
+					{
+						err_name=xmlGetNoNsProp(tmppnode,"name");
+						err_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+				
+		}
+		
+		tmpnode=tmpnode->next;
+	}
+
+	/*处理*/
+
+
+	free(status);free(message);free(headtitle);free(punch_type);
+	free(err_name);free(err_value);
+	xmlFreeDoc(doc);
+}
+
+
+/*
+	api55:
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method=lunch_rfid_punch&key=AJ5P8EG3M2Z3&serial=BN4000-20082123
+&rfid=1234567890
+
+	recive:
+	<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+			<status>Successful</status>
+			<status_message></status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+			<current_punch name=”You Punched IN” value=”at 4:04 AM” />
+			<employee name=”Employee Name” value=”Lebron James” />
+			<department name=”Department Name” value=”Dep1” />
+			<last_punch name=”Your Last Lunch Punch” value=”November 23 @ 4:15PM” />
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+Sample Output (Failure)
+	<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+			<status>Failure</status>
+			<status_message>Sorry, User Not Found!</status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+			<error_code name=”Error Code” value=”U-1” />
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+	
+*/
+int Lunch_RFID_Punch(char *key,char *serial,char *RFID,char *Dept)
+{
+	/*发送*/
+	char send[1024]={0};
+	char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	sprintf(send,"%smethod=Lunch_RFID_Punch&key=%s&serial=%s&rfid=%s",address,key,serial,RFID);	
+
+	/*返回解析*/
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+		
+		
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL,* punch_type;
+	xmlChar *err_name=NULL,*err_value;
+	
+	xmlChar *curr_punch_name=NULL,*curr_punch_value=NULL,*employee_name=NULL,*employee_value=NULL;
+	xmlChar *department_name=NULL,*department_value=NULL,*last_punch_name=NULL,*last_punch_value=NULL;
+
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+
+	while(tmpnode)
+	{
+		if(xmlStrcmp(tmpnode->name,"Header"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"status"))
+						status=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"status_message"))
+						message=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"header_title"))
+						headtitle=xmlNodeGetContent(tmppnode);
+					tmppnode=tmppnode->next;
+				}
+			}
+
+		if(xmlStrcmp(tmpnode->name,"Detail"))
+		{
+			if(xmlStrcmp(status,"Successful"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"current_punch"))
+					{
+						curr_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						curr_punch_value=xmlGetNoNsProp(tmppnode,"value");	
+					}
+					if(xmlStrcmp(tmppnode->name,"employee"))
+					{
+						employee_name=xmlGetNoNsProp(tmppnode,"name");
+						employee_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					if(xmlStrcmp(tmppnode->name,"departmen"))
+					{
+						department_name=xmlGetNoNsProp(tmppnode,"name");
+						department_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					if(xmlStrcmp(tmppnode->name,"last_punch"))
+					{
+						last_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						last_punch_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+			else
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"error_code"))
+					{
+						err_name=xmlGetNoNsProp(tmppnode,"name");
+						err_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+			
+		}	
+
+		tmpnode=tmpnode->next;
+		
+	}
+
+	
+	/*处理*/
+
+	free(status);free(message);free(headtitle);
+	free(curr_punch_name);free(curr_punch_value);
+	free(employee_name);free(employee_value);
+	free(last_punch_name);free(last_punch_value);
+	free(err_name);free(err_value);
+	xmlFreeDoc(doc);
+	
+}
+
+
+/*
+	api31:类似api55
+*/
+
+int Lunch_Pin_Punch(char *key,char *serial,char *pin,char *Dept)
+{
+	/*发送*/
+	char send[1024]={0};
+	char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	sprintf(send,"%smethod=Lunch_Pin_Punch&key=%s&serial=%s&pin=%s",address,key,serial,pin);	
+
+	/*返回解析*/
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+		
+		
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL,* punch_type;
+	xmlChar *err_name=NULL,*err_value;
+	
+	xmlChar *curr_punch_name=NULL,*curr_punch_value=NULL,*employee_name=NULL,*employee_value=NULL;
+	xmlChar *department_name=NULL,*department_value=NULL,*last_punch_name=NULL,*last_punch_value=NULL;
+
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+
+	while(tmpnode)
+	{
+		if(xmlStrcmp(tmpnode->name,"Header"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"status"))
+						status=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"status_message"))
+						message=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"header_title"))
+						headtitle=xmlNodeGetContent(tmppnode);
+					tmppnode=tmppnode->next;
+				}
+			}
+
+		if(xmlStrcmp(tmpnode->name,"Detail"))
+		{
+			if(xmlStrcmp(status,"Successful"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"current_punch"))
+					{
+						curr_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						curr_punch_value=xmlGetNoNsProp(tmppnode,"value");	
+					}
+					if(xmlStrcmp(tmppnode->name,"employee"))
+					{
+						employee_name=xmlGetNoNsProp(tmppnode,"name");
+						employee_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					if(xmlStrcmp(tmppnode->name,"departmen"))
+					{
+						department_name=xmlGetNoNsProp(tmppnode,"name");
+						department_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					if(xmlStrcmp(tmppnode->name,"last_punch"))
+					{
+						last_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						last_punch_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+			else
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"error_code"))
+					{
+						err_name=xmlGetNoNsProp(tmppnode,"name");
+						err_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+			
+		}	
+
+		tmpnode=tmpnode->next;
+		
+	}
+
+	
+	/*处理*/
+
+	free(status);free(message);free(headtitle);
+	free(curr_punch_name);free(curr_punch_value);
+	free(employee_name);free(employee_value);
+	free(last_punch_name);free(last_punch_value);
+	free(err_name);free(err_value);
+	xmlFreeDoc(doc);
+	
+}
+
+
+/*
+	api35:类似api31
+*/
+
+int Lunch_Bio_Punch(char *key,char *serial,char *RFID,char *Dept)
+{
+	/*发送*/
+	char send[1024]={0};
+	char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	sprintf(send,"%smethod=Lunch_Bio_Punch&key=%s&serial=%s&rfid=%s",address,key,serial,RFID);	
+
+	/*返回解析*/
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+		
+		
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL,* punch_type;
+	xmlChar *err_name=NULL,*err_value;
+	
+	xmlChar *curr_punch_name=NULL,*curr_punch_value=NULL,*employee_name=NULL,*employee_value=NULL;
+	xmlChar *department_name=NULL,*department_value=NULL,*last_punch_name=NULL,*last_punch_value=NULL;
+
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+
+	while(tmpnode)
+	{
+		if(xmlStrcmp(tmpnode->name,"Header"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"status"))
+						status=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"status_message"))
+						message=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"header_title"))
+						headtitle=xmlNodeGetContent(tmppnode);
+					tmppnode=tmppnode->next;
+				}
+			}
+
+		if(xmlStrcmp(tmpnode->name,"Detail"))
+		{
+			if(xmlStrcmp(status,"Successful"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"current_punch"))
+					{
+						curr_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						curr_punch_value=xmlGetNoNsProp(tmppnode,"value");	
+					}
+					if(xmlStrcmp(tmppnode->name,"employee"))
+					{
+						employee_name=xmlGetNoNsProp(tmppnode,"name");
+						employee_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					if(xmlStrcmp(tmppnode->name,"departmen"))
+					{
+						department_name=xmlGetNoNsProp(tmppnode,"name");
+						department_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					if(xmlStrcmp(tmppnode->name,"last_punch"))
+					{
+						last_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						last_punch_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+			else
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"error_code"))
+					{
+						err_name=xmlGetNoNsProp(tmppnode,"name");
+						err_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+			
+		}	
+
+		tmpnode=tmpnode->next;
+		
+	}
+
+	
+	/*处理*/
+
+	free(status);free(message);free(headtitle);
+	free(curr_punch_name);free(curr_punch_value);
+	free(employee_name);free(employee_value);
+	free(last_punch_name);free(last_punch_value);
+	free(err_name);free(err_value);
+	xmlFreeDoc(doc);
+	
+}
+
+
+
+
+/*
+	api45:
+	
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method= get_job_list&key=AJ5P8EG3M2Z3&serial=BN4000-RQKVZKNZ
+&user_id=12345
+	
+	recive:
+	<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+			<status>Successful</status>
+			<detail>Yes</detail>
+			<status_message> </status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+		</Detail>
+		<Table>
+			<table_header>Job Number Selection</table_header>
+			<id>1</id>
+			<number>12345</number>
+			<id>2</id>
+			<number>00233</number>
+			<id>3</id>
+			<number>030233</number>
+		</Table>
+	</result>
+
+	
+<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+			<status>Failure</status>
+			<status_message> User Not Found!</status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+			<error_code name=”Error Code” value=”U-1” />
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+	
+*/
+
+int Get_job_list(char *key,char *serial,char *user_id)
+{
+	
+	/*发送*/
+	char send[1024]={0};
+	char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	sprintf(send,"%smethod=Get_job_list&key=%s&serial=%s&user_id=%s",address,key,serial,user_id);	
+
+	/*返回解析*/
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+		
+		
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL,* detail=NULL;
+	xmlChar *err_name=NULL,*err_value;
+	int idnum,numnum;
+	char idlist[128]={0};
+	xmlChar * numberlist[128][8];
+
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+	idnum=0;
+	numnum=0;
+	while(tmpnode)
+	{
+		if(xmlStrcmp(tmpnode->name,"Header"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"status"))
+						status=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"status_message"))
+						message=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"header_title"))
+						headtitle=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"detail"))
+						detail=xmlNodeGetContent(tmppnode);
+					tmppnode=tmppnode->next;
+				}
+			}
+
+		if(xmlStrcasecmp(tmpnode->name,"Detail"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"error_code"))
+					{
+						err_name=xmlGetNoNsProp(tmppnode,"name");
+						err_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;
+				}
+			}
+
+		if(xmlStrcasecmp(tmpnode->name,"Table"))
+		{
+			tmppnode=tmpnode->children;
+			while(tmppnode)
+			{
+				if(xmlStrcmp(tmppnode->name,"id"))
+				{
+					idlist[idnum++]=atoi(xmlNodeGetContent(tmppnode));
+				}
+
+				if(xmlStrcmp(tmppnode->name,"number"))
+				{
+					strcat(numberlist[numnum++],xmlNodeGetContent(tmppnode))
+				}
+				
+				tmppnode=tmppnode->next;
+			}
+		}
+
+		tmpnode=tmpnode->next;
+	}
+
+
+	/*处理*/
+
+	free(status);free(message);free(headtitle);free(detail);
+	free(err_name);free(err_value);
+	xmlFreeDoc(doc);
+	
+}
+
+
+/*
+	api46:
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method= get_job_list_detail&key=AJ5P8EG3M2Z3&serial=BN4000-RQKVZ KNZ &user_id=12345&job_number=12345
+	recive:
+	<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+			<status>Success</status>
+			<status_message></status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+		</Detail>
+		<Table>
+			<table_header>Job Detail Number Selection</table_header>
+			<id>0</id>
+			<number>NO DETAIL</number>
+			<id>1</id>
+			<number>12345</number>
+			<id>2</id>
+			<number>00233</number>
+			<id>3</id>
+			<number>030233</number>
+		</Table>
+	</result>
+Sample Output (Success)
+	<?xml version=”1.0” encoding=”UTF-8” ?>
+		<result>
+		<Header>
+			<status>Success</status>
+			<status_message> </status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+		</Detail>
+		<Table>
+			<table_header>Job Detail Number Selection</table_header>
+			<id>0</id>
+			<number>NO DETAIL</number>
+			<id>1</id>
+			<number>12345</number>
+			<id>2</id>
+			<number>00233</number>
+			<id>3</id>
+			<number>030233</number>
+		</Table>
+	</result>
+Sample Output (Failure)
+	<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+		<status>Failure</status>
+
+		<status_message> User Not Found!</status_message>
+		</Header>
+		<Detail>
+		<error_code name=”Error Code” value=”U-1” />
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+*/
+int Get_job_list_detail(char *key,char *serial,char *user_id,char *job_number)
+{
+	/*发送*/
+	char send[1024]={0};
+	char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	sprintf(send,"%smethod=Get_job_list_detail&key=%s&serial=%s&user_id=%s&job_number=%s",address,key,serial,user_id,job_number);	
+
+	
+	
+	
+	/*返回解析*/
+		char * back;	
+		int length;
+		xmlDocPtr  doc = NULL;
+		xmlNodePtr root_node = NULL;
+		xmlNodePtr tmpnode=NULL;
+		xmlNodePtr tmppnode=NULL;	//二级子节点
+			
+			
+		xmlChar *status=NULL,*message=NULL,* headtitle=NULL,* detail=NULL;
+		xmlChar *err_name=NULL,*err_value;
+		int idnum,numnum;
+		char idlist[128]={0};
+		xmlChar * numberlist[128][8];
+	
+		
+		doc=xmlReadMemory(back, length, NULL, NULL, 0);
+		root_node=xmlDocGetRootElement(doc);
+		tmpnode=root_node->children;
+
+		idnum=0;
+		numnum=0;
+		while(tmpnode)		
+		{
+		if(xmlStrcmp(tmpnode->name,"Header"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"status"))
+						status=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"status_message"))
+						message=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"header_title"))
+						headtitle=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"detail"))
+						detail=xmlNodeGetContent(tmppnode);
+					tmppnode=tmppnode->next;
+				}
+			}
+
+		if(xmlStrcasecmp(tmpnode->name,"Detail"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"error_code"))
+					{
+						err_name=xmlGetNoNsProp(tmppnode,"name");
+						err_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;
+				}
+			}
+
+		if(xmlStrcasecmp(tmpnode->name,"Table"))
+		{
+			tmppnode=tmpnode->children;
+			while(tmppnode)
+			{
+				if(xmlStrcmp(tmppnode->name,"id"))
+				{
+					idlist[idnum++]=atoi(xmlNodeGetContent(tmppnode));
+				}
+
+				if(xmlStrcmp(tmppnode->name,"number"))
+				{
+					strcat(numberlist[numnum++],xmlNodeGetContent(tmppnode))
+				}
+				
+				tmppnode=tmppnode->next;
+			}
+		}
+
+		tmpnode=tmpnode->next;
+	}
+
+	
+		/*处理*/
+
+	free(status);free(message);free(headtitle);free(detail);
+	free(err_name);free(err_value);
+	xmlFreeDoc(doc);
+	
+}
+
+
+/*
+	api47:
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method=job_punch&key=AJ5P8EG3M2Z3&seri al=BN4000-71661532&user_id=000001&job_number=3333&job_number_detail=99933
+	recive:
+<?xml version=”1.0” encoding=”UTF-8” ?>
+<result>
+	<Header>
+	<status>Successful</status>
+	<status_message></status_message>
+	<header_title></header_title>
+	</Header>
+	<Detail>
+		<current_punch name=”You Punched IN” value=”at 4:04 AM” />
+		<employee name=”Employee Name” value=”Lebron James” />
+		<job_number=”Job Number” value=”12345” />
+		<job_number_detail=”Job Number Detail” value=”12345” />
+		<last_punch name=”Your Last Punch” value=”November 23 @ 4:15PM” />
+	</Detail>
+	<Table>
+	</Table>
+</result>
+Sample Output (Failure)
+<?xml version=”1.0” encoding=”UTF-8” ?>
+<result>
+	<Header>
+		<status>Failure</status>
+		<status_message>Sorry, User Not Found!</status_message>
+		<header_title></header_title>
+	</Header>
+	<Detail>
+		<error_code name=”Error Code” value=”U-1” />
+	</Detail>
+	<Table>
+	</Table>
+</result>
+	
+*/
+int Job_punch(char *key,char *serial,char *user_id,char *job_number_detail,char *job_number)
+{
+	/*发送*/
+	char send[1024]={0};
+	char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	sprintf(send,"%smethod=Job_punch&key=%s&serial=%s&user_id=%s&job_number_detail=%s&job_number=%s",address,key,serial,user_id,job_number_detail,job_number);	
+
+	/*返回解析*/
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+		
+		
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL;
+	xmlChar *err_name=NULL,*err_value;
+	
+	xmlChar *job_number_name=NULL,*job_number_value=NULL,*job_number_detail_name=NULL,*job_number_detail_value=NULL;
+	xmlChar *curr_punch_name=NULL,*curr_punch_value=NULL,*employee_name=NULL,*employee_value=NULL;
+	xmlChar *department_name=NULL,*department_value=NULL,*last_punch_name=NULL,*last_punch_value=NULL;
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+	while(tmpnode)	
+	{
+		if(xmlStrcmp(tmpnode->name,"Header"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"status"))
+						status=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"status_message"))
+						message=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"header_title"))
+						headtitle=xmlNodeGetContent(tmppnode);
+					tmppnode=tmppnode->next;
+				}
+			}
+		
+		if(xmlStrcmp(tmpnode->name,"Detail"))
+		{
+			if(xmlStrcmp(status,"Successful"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"current_punch"))
+					{
+						curr_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						curr_punch_value=xmlGetNoNsProp(tmppnode,"value");	
+					}
+					if(xmlStrcmp(tmppnode->name,"employee"))
+					{
+						employee_name=xmlGetNoNsProp(tmppnode,"name");
+						employee_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+
+					if(xmlStrcmp(tmppnode->name,"job_number"))
+					{
+						job_number_name=xmlGetNoNsProp(tmppnode,"name");
+						job_number_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+
+					if(xmlStrcmp(tmppnode->name,"job_number_detail"))
+					{
+						job_number_detail_name=xmlGetNoNsProp(tmppnode,"name");
+						job_number_detail_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					
+					
+					if(xmlStrcmp(tmppnode->name,"last_punch"))
+					{
+						last_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						last_punch_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					
+					
+					tmppnode=tmppnode->next;	
+				}
+			}
+			else
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"error_code"))
+					{
+						err_name=xmlGetNoNsProp(tmppnode,"name");
+						err_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+			
+		}	
+	}	
+	
+	/*处理*/
+	
+	free(status);free(message);free(headtitle);
+	free(curr_punch_name);free(curr_punch_value);
+	free(employee_name);free(employee_value);
+	free(job_number_name);free(job_number_value);
+	free(job_number_detail_name);free(job_number_detail_value);
+	free(last_punch_name);free(last_punch_value);
+	free(err_name);free(err_value);
+	xmlFreeDoc(doc);
+
+
+
+	
+}
+
+
+
+/*
+	api64:
+	send:http://ws.trackmytime.com/uattend-1.0.cfc?method=end_job_punch_rfid &key=AJ5P8EG3M2Z3&serial=BN4000-RQKV ZKNZ&rfid=1234567890
+	
+	recive:
+	
+<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+			<status>Successful</status>
+			<status_message></status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+			<current_punch name=”You Punched Out” value=”at 4:04 AM” />
+			<employee name=”Employee Name” value=”Lebron James” />
+			<job_number=”Job Number” value=”12345” />
+			<job_number_detail=”Job Number Detail” value=”12345” />
+			<last_punch name=”Your Last Punch” value=”November 23 @ 4:15PM” />
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+Sample Output (Failure)
+<?xml version=”1.0” encoding=”UTF-8” ?>
+	<result>
+		<Header>
+			<status>Failure</status>
+			<status_message>Sorry, User Not Found!</status_message>
+			<header_title></header_title>
+		</Header>
+		<Detail>
+			<error_code name=”Error Code” value=”U-1” />
+		</Detail>
+		<Table>
+		</Table>
+	</result>
+Sample Output (Failure)
+<?xml version=”1.0” encoding=”UTF-8” ?>
+<result>
+	<Header>
+		<status>Failure</status>
+		<status_message>Sorry, Not Punched In To A Job!</status_message>
+		<header_title></header_title>
+	</Header>
+	<Detail>
+		<error_code name=”Error Code”	value=”U-1” />
+	</Detail>
+	<Table>
+	</Table>
+</result>
+
+*/
+int	end_job_punch_rfid(char *key,char *serial,char *rfid)
+{
+	
+	/*发送*/
+	char send[1024]={0};
+	char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	sprintf(send,"%smethod=end_job_punch_rfid&key=%s&serial=%s&rfid=%s",address,key,serial,rfid);	
+
+	/*返回解析*/
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+		
+		
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL;
+	xmlChar *err_name=NULL,*err_value;
+	
+	xmlChar *job_number_name=NULL,*job_number_value=NULL,*job_number_detail_name=NULL,*job_number_detail_value=NULL;
+	xmlChar *curr_punch_name=NULL,*curr_punch_value=NULL,*employee_name=NULL,*employee_value=NULL;
+	xmlChar *department_name=NULL,*department_value=NULL,*last_punch_name=NULL,*last_punch_value=NULL;
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+	while(tmpnode)
+	{
+		if(xmlStrcmp(tmpnode->name,"Header"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"status"))
+						status=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"status_message"))
+						message=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"header_title"))
+						headtitle=xmlNodeGetContent(tmppnode);
+					tmppnode=tmppnode->next;
+				}
+			}
+		
+		if(xmlStrcmp(tmpnode->name,"Detail"))
+		{
+			if(xmlStrcmp(status,"Successful"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"current_punch"))
+					{
+						curr_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						curr_punch_value=xmlGetNoNsProp(tmppnode,"value");	
+					}
+					if(xmlStrcmp(tmppnode->name,"employee"))
+					{
+						employee_name=xmlGetNoNsProp(tmppnode,"name");
+						employee_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+
+					if(xmlStrcmp(tmppnode->name,"job_number"))
+					{
+						job_number_name=xmlGetNoNsProp(tmppnode,"name");
+						job_number_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+
+					if(xmlStrcmp(tmppnode->name,"job_number_detail"))
+					{
+						job_number_detail_name=xmlGetNoNsProp(tmppnode,"name");
+						job_number_detail_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					
+					
+					if(xmlStrcmp(tmppnode->name,"last_punch"))
+					{
+						last_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						last_punch_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					
+					
+					tmppnode=tmppnode->next;	
+				}
+			}
+			else
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"error_code"))
+					{
+						err_name=xmlGetNoNsProp(tmppnode,"name");
+						err_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+			
+		}	
+	}
+
+	
+	/*处理*/
+	
+	free(status);free(message);free(headtitle);
+	free(curr_punch_name);free(curr_punch_value);
+	free(employee_name);free(employee_value);
+	free(job_number_name);free(job_number_value);
+	free(job_number_detail_name);free(job_number_detail_value);
+	free(last_punch_name);free(last_punch_value);
+	free(err_name);free(err_value);
+	xmlFreeDoc(doc);
+	
+}
+
+
+/*
+	api65:	类似api64
+	send:
+	recive:
+*/
+int end_job_punch_pin(char *key,char *serial,char *pin)
+{
+	
+	/*发送*/
+	char send[1024]={0};
+	char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	sprintf(send,"%smethod=end_job_punch_pin&key=%s&serial=%s&pin=%s",address,key,serial,pin);	
+
+	/*返回解析*/
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+		
+		
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL;
+	xmlChar *err_name=NULL,*err_value;
+	
+	xmlChar *job_number_name=NULL,*job_number_value=NULL,*job_number_detail_name=NULL,*job_number_detail_value=NULL;
+	xmlChar *curr_punch_name=NULL,*curr_punch_value=NULL,*employee_name=NULL,*employee_value=NULL;
+	xmlChar *department_name=NULL,*department_value=NULL,*last_punch_name=NULL,*last_punch_value=NULL;
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+	while(tmpnode)
+	{
+		if(xmlStrcmp(tmpnode->name,"Header"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"status"))
+						status=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"status_message"))
+						message=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"header_title"))
+						headtitle=xmlNodeGetContent(tmppnode);
+					tmppnode=tmppnode->next;
+				}
+			}
+		
+		if(xmlStrcmp(tmpnode->name,"Detail"))
+		{
+			if(xmlStrcmp(status,"Successful"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"current_punch"))
+					{
+						curr_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						curr_punch_value=xmlGetNoNsProp(tmppnode,"value");	
+					}
+					if(xmlStrcmp(tmppnode->name,"employee"))
+					{
+						employee_name=xmlGetNoNsProp(tmppnode,"name");
+						employee_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+
+					if(xmlStrcmp(tmppnode->name,"job_number"))
+					{
+						job_number_name=xmlGetNoNsProp(tmppnode,"name");
+						job_number_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+
+					if(xmlStrcmp(tmppnode->name,"job_number_detail"))
+					{
+						job_number_detail_name=xmlGetNoNsProp(tmppnode,"name");
+						job_number_detail_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					
+					
+					if(xmlStrcmp(tmppnode->name,"last_punch"))
+					{
+						last_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						last_punch_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					
+					
+					tmppnode=tmppnode->next;	
+				}
+			}
+			else
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"error_code"))
+					{
+						err_name=xmlGetNoNsProp(tmppnode,"name");
+						err_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+			
+		}	
+	}
+
+	
+	/*处理*/
+	
+	free(status);free(message);free(headtitle);
+	free(curr_punch_name);free(curr_punch_value);
+	free(employee_name);free(employee_value);
+	free(job_number_name);free(job_number_value);
+	free(job_number_detail_name);free(job_number_detail_value);
+	free(last_punch_name);free(last_punch_value);
+	free(err_name);free(err_value);
+	xmlFreeDoc(doc);
+	
+}
+
+
+
+/*
+	api66:类似api64
+	
+*/
+int end_job_punch_bio(char *key,char *serial,char *fid)
+{
+	
+	/*发送*/
+	char send[1024]={0};
+	char address[]="http://ws.trackmytime.com/uattend-1.0.cfc?";
+	sprintf(send,"%smethod=end_job_punch_bio&key=%s&serial=%s&fid=%s",address,key,serial,fid);	
+
+	/*返回解析*/
+	char * back;	
+	int length;
+	xmlDocPtr  doc = NULL;
+	xmlNodePtr root_node = NULL;
+	xmlNodePtr tmpnode=NULL;
+	xmlNodePtr tmppnode=NULL;	//二级子节点
+		
+		
+	xmlChar *status=NULL,*message=NULL,* headtitle=NULL;
+	xmlChar *err_name=NULL,*err_value;
+	
+	xmlChar *job_number_name=NULL,*job_number_value=NULL,*job_number_detail_name=NULL,*job_number_detail_value=NULL;
+	xmlChar *curr_punch_name=NULL,*curr_punch_value=NULL,*employee_name=NULL,*employee_value=NULL;
+	xmlChar *department_name=NULL,*department_value=NULL,*last_punch_name=NULL,*last_punch_value=NULL;
+	
+	doc=xmlReadMemory(back, length, NULL, NULL, 0);
+	root_node=xmlDocGetRootElement(doc);
+	tmpnode=root_node->children;
+
+	while(tmpnode)
+	{
+		if(xmlStrcmp(tmpnode->name,"Header"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"status"))
+						status=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"status_message"))
+						message=xmlNodeGetContent(tmppnode);
+					if(xmlStrcmp(tmppnode->name,"header_title"))
+						headtitle=xmlNodeGetContent(tmppnode);
+					tmppnode=tmppnode->next;
+				}
+			}
+		
+		if(xmlStrcmp(tmpnode->name,"Detail"))
+		{
+			if(xmlStrcmp(status,"Successful"))
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"current_punch"))
+					{
+						curr_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						curr_punch_value=xmlGetNoNsProp(tmppnode,"value");	
+					}
+					if(xmlStrcmp(tmppnode->name,"employee"))
+					{
+						employee_name=xmlGetNoNsProp(tmppnode,"name");
+						employee_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+
+					if(xmlStrcmp(tmppnode->name,"job_number"))
+					{
+						job_number_name=xmlGetNoNsProp(tmppnode,"name");
+						job_number_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+
+					if(xmlStrcmp(tmppnode->name,"job_number_detail"))
+					{
+						job_number_detail_name=xmlGetNoNsProp(tmppnode,"name");
+						job_number_detail_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					
+					
+					if(xmlStrcmp(tmppnode->name,"last_punch"))
+					{
+						last_punch_name=xmlGetNoNsProp(tmppnode,"name");
+						last_punch_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					
+					
+					tmppnode=tmppnode->next;	
+				}
+			}
+			else
+			{
+				tmppnode=tmpnode->children;
+				while(tmppnode)
+				{
+					if(xmlStrcmp(tmppnode->name,"error_code"))
+					{
+						err_name=xmlGetNoNsProp(tmppnode,"name");
+						err_value=xmlGetNoNsProp(tmppnode,"value");
+					}
+					tmppnode=tmppnode->next;	
+				}
+			}
+			
+		}	
+	}
+
+	
+	/*处理*/
+	
+	free(status);free(message);free(headtitle);
+	free(curr_punch_name);free(curr_punch_value);
+	free(employee_name);free(employee_value);
+	free(job_number_name);free(job_number_value);
+	free(job_number_detail_name);free(job_number_detail_value);
 	free(last_punch_name);free(last_punch_value);
 	free(err_name);free(err_value);
 	xmlFreeDoc(doc);
